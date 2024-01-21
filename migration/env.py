@@ -4,9 +4,9 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from groundible_admin.root.utils.abstract_base import AbstractBase
-from groundible_admin.root.settings import Settings
-from groundible_admin.root.app import app
+from checkin.root.utils.abstract_base import AbstractBase
+from checkin.root.settings import Settings
+from checkin.root.app import app
 
 settings = Settings()
 postgres_url = str(settings.postgres_url).split("//")
