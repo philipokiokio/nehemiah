@@ -56,7 +56,7 @@ async def admin_sign_up(admin_user: AdminUser):
     """
     try:
         admin_profile = await admin_user_db_handler.get_admin(email=admin_user.email)
-
+        print(admin_profile)
         if admin_profile:
             LOGGER.error("Admin Account: exists")
 
@@ -77,7 +77,7 @@ async def admin_sign_up(admin_user: AdminUser):
 
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Account for this admin cred exists",
+                    detail="Account for this admin's phone_number cred exists",
                 )
         except NotFound:
             admin_user.password = auth_utils.hash_password(

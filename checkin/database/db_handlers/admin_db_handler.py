@@ -41,7 +41,7 @@ async def create_admin(admin_user: AdminUser) -> AdminUserProfile:
 async def get_admin(email: str):
     async with async_session() as session:
         result = (
-            await session.execute(select(Admin_DB).where(Admin_DB.email == email))
+            await session.execute(select(Admin_DB).filter(Admin_DB.email == email))
         ).scalar_one_or_none()
 
         if not result:

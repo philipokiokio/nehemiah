@@ -33,6 +33,7 @@ class NewMember(Member):
 
 
 class MemberProfile(NewMember):
+    checkin_token: str
     member_uid: UUID
     installation: Installation
     date_created_utc: datetime
@@ -56,7 +57,7 @@ class Attendance(AbstractModel):
     global_gethsemane: bool
     midweek_service: bool
     is_guest: bool
-    guest_installation: Optional[bool] = None
+    guest_installation: Optional[str] = None
 
 
 class AttendanceUpdate(AbstractModel):

@@ -1,6 +1,8 @@
 from checkin.schemas.commons_schemas import Installation
 from checkin.schemas.member_schemas import (
+    AttendanceProfile,
     Member,
+    MemberExtendedProfile,
     MemberUpdate,
     NewMember,
     Attendance,
@@ -24,14 +26,16 @@ from datetime import date
 LOGGER = logging.getLogger(__file__)
 
 
-async def create_first_time_member(member: NewMember, installation: Installation):
+async def create_first_time_member(new_member: NewMember, installation: Installation):
     try:
-        await _get_member(first_name=member.first_name, last_name=member.last_name)
+        await _get_member(
+            first_name=new_member.first_name, last_name=new_member.last_name
+        )
         raise HTTPException(**service_utils.ErrorEnum.member_found())
     except NotFound:
         try:
             member_profile = await member_db_handler.create_new_member(
-                new_member=member, installation=installation
+                new_member=new_member, installation=installation
             )
 
             # create attendance
@@ -40,9 +44,9 @@ async def create_first_time_member(member: NewMember, installation: Installation
                 installation=installation,
                 member_installation=member_profile.installation,
             )
-            member_profile.attendance.append(attendance_profile)
-
-            return member_profile
+            return await __condinational_attendance_update(
+                attendance_profile=attendance_profile, member_profile=member_profile
+            )
         except DuplicateError as e:
             LOGGER.exception(e)
             LOGGER.error("agent duplicate found")
@@ -68,20 +72,17 @@ async def member_checkin_via_checkin_token(
         member_profile = await member_db_handler.get_member_via_checkin_token(
             checkin_token=checkin_token
         )
-        if member_profile.attendance >= 4:
-            await member_db_handler.update_member(
-                member_uid=member_profile.member_uid,
-                member_update=MemberUpdate(is_first_time=False),
-            )
+
+        await __update_to_member_status(member_profile=member_profile)
 
         attendance_profile = await create_attendance_record(
             member_uid=member_profile.member_uid,
             member_installation=member_profile.installation,
             installation=installation,
         )
-        member_profile.attendance.append(attendance_profile)
-
-        return member_profile
+        return await __condinational_attendance_update(
+            attendance_profile=attendance_profile, member_profile=member_profile
+        )
     except NotFound:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -99,22 +100,41 @@ async def __get_member_via_names(first_name: str, last_name: str):
         )
 
 
-async def member_checkin(member: Member, installation: Installation):
-    member_profile = await __get_member_via_names(
-        first_name=member.first_name, last_name=member.last_name
-    )
-    if member_profile.attendance >= 4:
+async def __update_to_member_status(member_profile: MemberExtendedProfile):
+    if len(member_profile.attendance) >= 4:
         await member_db_handler.update_member(
             member_uid=member_profile.member_uid,
             member_update=MemberUpdate(is_first_time=False),
         )
+
+
+async def __condinational_attendance_update(
+    attendance_profile: AttendanceProfile, member_profile: MemberExtendedProfile
+):
+    if len(member_profile.attendance) == 0:
+        member_profile.attendance.append(attendance_profile)
+
+    elif attendance_profile.date != member_profile.attendance[-1].date:
+        print(attendance_profile.date)
+        member_profile.attendance.append(attendance_profile)
+
+    return member_profile
+
+
+async def member_checkin(member: Member, installation: Installation):
+    member_profile = await __get_member_via_names(
+        first_name=member.first_name, last_name=member.last_name
+    )
+
+    await __update_to_member_status(member_profile=member_profile)
     attendance_profile = await create_attendance_record(
         member_uid=member_profile.member_uid,
         member_installation=member_profile.installation,
         installation=installation,
     )
-    member_profile.attendance.append(attendance_profile)
-    return member_profile
+    return await __condinational_attendance_update(
+        attendance_profile=attendance_profile, member_profile=member_profile
+    )
 
 
 async def create_attendance_record(
@@ -158,7 +178,7 @@ async def get_todays_attendance(member_uid: UUID, date_: date):
         )
 
 
-async def get_attendance_via_uid(attendance_uid: UUID):
+async def get_attendance_via_uid(attendance_uid: UUID) -> AttendanceProfile:
     try:
         return await member_db_handler.get_member_attendance_record_via_uid(
             attendance_uid=attendance_uid
@@ -168,6 +188,25 @@ async def get_attendance_via_uid(attendance_uid: UUID):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="attendance record was not found",
+        )
+
+
+async def update_attendance_via_uid(
+    attendance_uid: UUID, attendance_update: AttendanceUpdate
+):
+    try:
+        attendance_profile = await get_attendance_via_uid(attendance_uid=attendance_uid)
+
+        return await member_db_handler.update_member_attendance_record(
+            member_uid=attendance_profile.member_uid,
+            uid=attendance_uid,
+            attendance_update=attendance_update,
+        )
+
+    except UpdateError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="attendance updated failed",
         )
 
 
@@ -230,6 +269,7 @@ async def delete_member(member_uid: UUID):
     try:
         # trigger the job to Client Side
         await member_db_handler.delete_member(member_uid=member_uid)
+
         return {}
     except DeleteError as e:
         LOGGER.exception(e)
@@ -247,6 +287,6 @@ async def admin_dashboard_statistics(installation: Installation):
 
         member_uids = [member.member_uid for member in member_profiles.result_set]
 
-    return member_db_handler.member_attendance_statistics(
+    return await member_db_handler.member_attendance_statistics(
         installation=installation, member_uids=member_uids
     )

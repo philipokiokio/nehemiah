@@ -1,84 +1,57 @@
-from pydantic import EmailStr
-from checkin.schemas.auth_schemas import AdminUserProfile
-import checkin.services.member_service as agent_service
+import checkin.services.member_service as member_service
 from checkin.schemas.member_schemas import (
     Member,
     MemberProfile,
-    Attendance,
-    AttendanceProfile,
-    AttendanceUpdate,
-    MemberUpdate,
-    PaginatedMemberProfile,
+    MemberExtendedProfile,
+    NewMember,
+    Installation,
 )
 from fastapi import (
     APIRouter,
-    Body,
     status,
     Depends,
-    UploadFile,
+    Header,
 )
-from checkin.schemas.commons_schemas import PaginatedQuery
-from checkin.services.service_utils.auth_utils import get_current_user
-from checkin.schemas.auth_schemas import AdminUserProfile
-from uuid import UUID
 
 
-api_router = APIRouter(prefix="/v1/agents", tags=["Agent Management"])
+api_router = APIRouter(prefix="/v1/members", tags=["Member Management"])
 
 
-@api_router.post(path="/invite", status_code=status.HTTP_201_CREATED)
-async def invite_agent(
-    email: EmailStr = Body(embed=True),
-    admin_profile: AdminUserProfile = Depends(get_current_user),
+@api_router.post(
+    path="/first-timer",
+    status_code=status.HTTP_201_CREATED,
+    response_model=MemberExtendedProfile,
+)
+async def add_first_timer(
+    new_member: NewMember, installation: Installation = Installation
 ):
-    return await agent_service.create_admin_agent(
-        admin_uid=admin_profile.admin_uid, email=email
+    return await member_service.create_first_time_member(
+        new_member=new_member, installation=installation
     )
 
 
-@api_router.get(
-    path="/{agent_uid}", status_code=status.HTTP_200_OK, response_model=MemberProfile
+@api_router.post(
+    path="/token/check-in",
+    status_code=status.HTTP_200_OK,
+    response_model=MemberExtendedProfile,
 )
-async def get_agent(
-    agent_uid: UUID, admin_profile: AdminUserProfile = Depends(get_current_user)
-):
-    return await agent_service.get_admin_agent(
-        agent_uid=agent_uid, admin_uid=admin_profile.admin_uid
-    )
-
-
-@api_router.get(
-    path="", status_code=status.HTTP_200_OK, response_model=PaginatedMemberProfile
-)
-async def get_agents(
-    pagniated_query: PaginatedQuery = Depends(PaginatedQuery),
-    admin_profile: AdminUserProfile = Depends(get_current_user),
+async def token_member_checkin(
+    checkin_token: str = Header(), installation: Installation = Installation
 ):
     # depends on the Query
 
-    return await agent_service.get_admin_agents(
-        admin_uid=admin_profile.admin_uid, **pagniated_query.model_dump()
+    return await member_service.member_checkin_via_checkin_token(
+        checkin_token=checkin_token, installation=installation
     )
 
 
-# DELETE RECORD
-@api_router.delete(path="/{agent_uid}", status_code=status.HTTP_200_OK)
-async def delete_agent(
-    agent_uid: UUID,
-    admin_profile: AdminUserProfile = Depends(get_current_user),
-):
-    return await agent_service.delete_admin_agent(agent_uid=agent_uid)
-
-
-# UPDATE RECORD
-@api_router.patch(
-    path="/{agent_uid}", status_code=status.HTTP_200_OK, response_model=AdminUserProfile
+@api_router.post(
+    path="/check-in",
+    status_code=status.HTTP_200_OK,
+    response_model=MemberExtendedProfile,
 )
-async def update_agent(
-    agent_uid: UUID,
-    agent_update: MemberUpdate,
-    admin_profile: AdminUserProfile = Depends(get_current_user),
-):
-    return await agent_service.update_admin_agent(
-        agent_uid=agent_uid, agent_update=agent_update
-    )
+async def member_checkin(member: Member, installation: Installation = Installation):
+    return await member_service.member_checkin(member=member, installation=installation)
+
+
+# Update  Record

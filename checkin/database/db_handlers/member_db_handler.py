@@ -26,16 +26,16 @@ import logging
 from checkin.database.orms.member_orm import Members as MemberDB
 from checkin.database.orms.member_orm import Attendance as AttendanceDB
 from datetime import date
-from itsdangerous import Serializer
+from itsdangerous.url_safe import URLSafeSerializer
 
 LOGGER = logging.getLogger(__file__)
 
 
-s = Serializer("neheimah")
+s = URLSafeSerializer("neheimah")
 
 
-def checkin_token_gen(member_uid: UUID):
-    return s.dump(member_uid)
+def checkin_token_gen(member_uid: str):
+    return s.dumps(member_uid)
 
 
 async def create_new_member(new_member: NewMember, installation: Installation):
@@ -59,7 +59,7 @@ async def create_new_member(new_member: NewMember, installation: Installation):
             session.rollback()
             raise CreateError
 
-        result.checkin_token = checkin_token_gen(member_uid=result.member_uid)
+        result.checkin_token = checkin_token_gen(member_uid=str(result.member_uid))
 
         await session.commit()
         return MemberExtendedProfile(**result.as_dict(), attendance=[])
@@ -131,8 +131,8 @@ async def get_installation_members(installation: Installation, **kwargs):
     offset = kwargs.get("offset", 0)
     print(limit, offset)
 
-    filter_case = [MemberDB.installation == installation.value]
-    if installation == Installation.global_:
+    filter_case = [MemberDB.installation == installation]
+    if installation == Installation.global_.value:
         filter_case = []
     async with async_session() as session:
         stmt = select(MemberDB).filter(and_(*filter_case))
@@ -154,7 +154,9 @@ async def get_installation_members(installation: Installation, **kwargs):
                 member_uid=x.member_uid
             )
             pagninated_member_profile.result_set.append(
-                MemberExtendedProfile(**x, attendance=member_attendance.result_set)
+                MemberExtendedProfile(
+                    **x.as_dict(), attendance=member_attendance.result_set
+                )
             )
 
         return pagninated_member_profile
@@ -195,6 +197,7 @@ async def delete_member(member_uid: UUID):
             await session.rollback()
             raise DeleteError
 
+        await delete_member_attendance_record(member_uid=member_uid)
         await session.commit()
 
         return MemberProfile(**result.as_dict())
@@ -320,7 +323,7 @@ async def update_member_attendance_record(
         return AttendanceProfile(**result.as_dict())
 
 
-async def delete_member_attendance_record(uid: UUID):
+async def delete_attendance_record(uid: UUID):
     async with async_session() as session:
         stmt = (
             delete(AttendanceDB).filter(AttendanceDB.uid == uid).returning(AttendanceDB)
@@ -338,6 +341,26 @@ async def delete_member_attendance_record(uid: UUID):
         return AttendanceProfile(**result.as_dict())
 
 
+async def delete_member_attendance_record(member_uid: UUID):
+    async with async_session() as session:
+        stmt = (
+            delete(AttendanceDB)
+            .filter(AttendanceDB.member_uid == member_uid)
+            .returning(AttendanceDB)
+        )
+
+        result = (await session.execute(statement=stmt)).scalars().all()
+
+        if not result:
+            await session.rollback()
+            LOGGER.error(f"attendance for member_uid: {member_uid} failed to delete")
+            raise DeleteError
+
+        await session.commit()
+
+        return
+
+
 # ADMIN DATA GENERATION
 # Total Number of Members
 # Total Number of First timers (bound by installation/global role)
@@ -352,16 +375,16 @@ async def member_attendance_statistics(
     async with async_session() as session:
         global_gethsemane_stmt = select(
             (func.count(AttendanceDB.global_gethsemane))
-        ).filter(and_(*filter_case, Attendance.global_gethsemane == True))
+        ).filter(and_(*filter_case, AttendanceDB.global_gethsemane == True))
 
         total_number_on_sunday = select(
             (func.count(AttendanceDB.sunday_service))
-        ).filter(and_(*filter_case, Attendance.sunday_service == True))
+        ).filter(and_(*filter_case, AttendanceDB.sunday_service == True))
         local_gethsemane = select((func.count(AttendanceDB.midweek_service))).filter(
-            and_(*filter_case, Attendance.midweek_service == True)
+            and_(*filter_case, AttendanceDB.midweek_service == True)
         )
 
-        installqtion_filter_case = [MemberDB.installation == installation.value]
+        installqtion_filter_case = [MemberDB.installation == installation]
         if installation == Installation.global_:
             filter_case = []
         total_number_member = select((func.count(MemberDB.member_uid))).filter(
