@@ -1,8 +1,7 @@
 from enum import Enum
 
 from checkin.root.utils.base_schemas import AbstractModel
-from pydantic import EmailStr, conint
-from typing import Optional, List, Union
+from pydantic import conint
 
 
 class PaginatedQuery(AbstractModel):
@@ -22,25 +21,30 @@ class Installation(Enum):
     ibadan = "IBADAN"
 
 
-class AkureTribe(Enum): ...
+class AkureTribe(Enum):
+    ...
 
 
 class IslandTribe(Enum):
     greater_lekki = "Greater Lekki"
+    lekki = "Lekki"
 
+
+class IkejaTribe(Enum):
     ...
 
 
-class IkejaTribe(Enum): ...
+class UKTribe(Enum):
+    ...
 
 
-class UKTribe(Enum): ...
+class MoroTribe(Enum):
+    ...
 
 
-class MoroTribe(Enum): ...
+class YabaTribe(Enum):
+    ...
 
 
-class YabaTribe(Enum): ...
-
-
-class IbadanTribe(Enum): ...
+class IbadanTribe(Enum):
+    ...
