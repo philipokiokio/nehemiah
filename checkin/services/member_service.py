@@ -8,13 +8,12 @@ from checkin.schemas.member_schemas import (
     Attendance,
     AttendanceUpdate,
 )
-from uuid import UUID, uuid4
+from uuid import UUID
 import checkin.database.db_handlers.member_db_handler as member_db_handler
 import logging
 from fastapi import HTTPException, status
 import checkin.services.service_error_enums as service_utils
 from checkin.services.service_utils.exception_collection import (
-    CreateError,
     DeleteError,
     DuplicateError,
     NotFound,
@@ -41,7 +40,7 @@ async def create_first_time_member(new_member: NewMember, installation: Installa
             # create attendance
             attendance_profile = await create_attendance_record(
                 member_uid=member_profile.member_uid,
-                installation=installation,
+                installation=member_profile.installation,
                 member_installation=member_profile.installation,
             )
             return await __condinational_attendance_update(
@@ -58,7 +57,7 @@ async def _get_member(first_name: str, last_name: str, **kwargs):
         return await member_db_handler.get_member_via_names(
             last_name=last_name, first_name=first_name
         )
-    except NotFound as e:
+    except NotFound:
         logging.error(
             f"There is no member with first_name: {first_name}, last_name: {last_name}"
         )
@@ -246,11 +245,11 @@ async def get_member_via_member_uid(member_uid: UUID):
 async def update_member(member_uid: UUID, member_update: MemberUpdate):
     await get_member_via_member_uid(member_uid=member_uid)
     try:
-        updated_member_profile = await member_db_handler.update_member(
+        await member_db_handler.update_member(
             member_uid=member_uid, member_update=member_update
         )
+        return await get_member_via_member_uid(member_uid=member_uid)
 
-        return updated_member_profile
     except UpdateError as e:
         LOGGER.exception(e)
         LOGGER.error(

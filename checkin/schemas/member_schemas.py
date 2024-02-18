@@ -13,7 +13,7 @@ from checkin.schemas.commons_schemas import (
     YabaTribe,
     Installation,
 )
-from datetime import date, datetime
+from datetime import date
 
 
 class Member(AbstractModel):
@@ -28,13 +28,13 @@ PHONE_NUMBER = constr(max_length=15, min_length=11)
 class NewMember(Member):
     email: EmailStr
     phone_number: PHONE_NUMBER
-    is_first_time: bool = True
     tribe: Union[IslandTribe, IkejaTribe, MoroTribe, IbadanTribe, UKTribe, YabaTribe]
 
 
 class MemberProfile(NewMember):
     checkin_token: str
     member_uid: UUID
+    is_first_time: bool
     installation: Installation
     date_created_utc: datetime
 

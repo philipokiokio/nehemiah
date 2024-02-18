@@ -1,4 +1,4 @@
-from sqlalchemy import insert, select, update, delete, and_, or_, func
+from sqlalchemy import insert, select, update, delete, and_, func
 from sqlalchemy.exc import IntegrityError
 from checkin.services.service_utils.exception_collection import (
     CreateError,
@@ -42,7 +42,11 @@ async def create_new_member(new_member: NewMember, installation: Installation):
     async with async_session() as session:
         stmt = (
             insert(MemberDB)
-            .values(**new_member.model_dump(), installation=installation.value)
+            .values(
+                **new_member.model_dump(),
+                installation=installation.value,
+                is_first_time=True,
+            )
             .returning(MemberDB)
         )
         try:
@@ -129,7 +133,6 @@ async def get_member_via_checkin_token(checkin_token: str, **kwargs):
 async def get_installation_members(installation: Installation, **kwargs):
     limit = kwargs.get("limit", 10)
     offset = kwargs.get("offset", 0)
-    print(limit, offset)
 
     filter_case = [MemberDB.installation == installation]
     if installation == Installation.global_.value:
@@ -252,7 +255,8 @@ async def get_member_attendance_records(member_uid: UUID):
 async def get_todays_attendance(member_uid: UUID, date_: date):
     async with async_session() as session:
         stmt = select(AttendanceDB).filter(
-            AttendanceDB.member_uid == member_uid, AttendanceDB.date == date_
+            AttendanceDB.member_uid == member_uid,
+            AttendanceDB.date == date_,
         )
 
         result = (await session.execute(statement=stmt)).scalar_one_or_none()

@@ -1,6 +1,7 @@
 import checkin.services.member_service as attendance_service
 from fastapi import APIRouter, status, Depends, Header
 from checkin.schemas.member_schemas import (
+    AdminMemberStatistics,
     Member,
     MemberUpdate,
     MemberExtendedProfile,
@@ -27,7 +28,6 @@ async def admin_member_checkin(
     installation: Installation = Header(Installation),
     admin_profile: AdminUserProfile = Depends(get_current_user),
 ):
-
     return await attendance_service.member_checkin(
         member=member, installation=installation
     )
@@ -92,11 +92,12 @@ async def delete_member(
     member_uid: UUID,
     admin_profile: AdminUserProfile = Depends(get_current_user),
 ):
-
     return await attendance_service.delete_member(member_uid=member_uid)
 
 
-@api_router.get("s/dashboard", status_code=status.HTTP_200_OK)
+@api_router.get(
+    "s/dashboard", status_code=status.HTTP_200_OK, response_model=AdminMemberStatistics
+)
 async def get_member_dashboard(
     admin_profile: AdminUserProfile = Depends(get_current_user),
 ):
@@ -113,7 +114,6 @@ async def update_attendance_profile(
     attendance_update: AttendanceUpdate,
     admin_profile: AdminUserProfile = Depends(get_current_user),
 ):
-
     return await attendance_service.update_attendance_via_uid(
         attendance_uid=uid, attendance_update=attendance_update
     )
