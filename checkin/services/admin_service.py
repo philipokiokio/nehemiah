@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 from checkin.schemas.auth_schemas import (
     AdminUser,
     AdminUserUpdate,
@@ -15,7 +14,6 @@ from checkin.services.service_utils.exception_collection import (
 import checkin.services.service_utils.gr_redis_utils as redis_utils
 import checkin.services.service_error_enums as service_errors
 import checkin.services.service_utils.auth_utils as auth_utils
-import json
 import checkin.services.service_utils.token_utils as gr_toks_utils
 from checkin.root.utils.mailer import send_mail
 
@@ -56,7 +54,6 @@ async def admin_sign_up(admin_user: AdminUser):
     """
     try:
         admin_profile = await admin_user_db_handler.get_admin(email=admin_user.email)
-        print(admin_profile)
         if admin_profile:
             LOGGER.error("Admin Account: exists")
 
@@ -110,9 +107,10 @@ async def admin_login(email: str, password: str):
         "admin_uid": str(admin_profile.admin_uid),
         "email": admin_profile.email,
     }
-    access_token, refresh_token = auth_utils.create_access_token(
-        data=payload_dict
-    ), auth_utils.create_refresh_token(data=payload_dict)
+    access_token, refresh_token = (
+        auth_utils.create_access_token(data=payload_dict),
+        auth_utils.create_refresh_token(data=payload_dict),
+    )
 
     return UserAccessToken(access_token=access_token, refresh_token=refresh_token)
 
