@@ -21,3 +21,8 @@ app = intialize()
 @app.get("/", status_code=307)
 def root():
     return RedirectResponse(url="/docs")
+
+
+@app.get("/health-check", status_code=200)
+def health_check():
+    return {"keep_alive": True}
