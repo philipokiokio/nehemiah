@@ -32,6 +32,12 @@ class NewMember(Member):
 
 
 class MemberProfile(NewMember):
+    address: Optional[str] = None
+    occupation: Optional[str] = None
+    instagram: Optional[str] = None
+    twitter: Optional[str] = None
+    referral: Optional[str] = None
+    prayer_request: Optional[str] = None
     checkin_token: str
     member_uid: UUID
     is_first_time: bool
@@ -48,6 +54,12 @@ class MemberUpdate(AbstractModel):
         Union[IslandTribe, IkejaTribe, MoroTribe, IbadanTribe, UKTribe, YabaTribe]
     ] = None
     is_first_time: Optional[bool] = None
+    address: Optional[str] = None
+    occupation: Optional[str] = None
+    instagram: Optional[str] = None
+    twitter: Optional[str] = None
+    referral: Optional[str] = None
+    prayer_request: Optional[str] = None
 
 
 class Attendance(AbstractModel):
