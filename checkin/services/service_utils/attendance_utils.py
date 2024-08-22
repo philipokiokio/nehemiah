@@ -19,3 +19,11 @@ def is_tuesday() -> bool:
         return False
 
     return True
+
+
+def is_wednesday() -> bool:
+    day_ = date.today().isoweekday()
+    if day_ != 3:
+        return False
+
+    return True

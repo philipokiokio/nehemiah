@@ -9,42 +9,36 @@ class PaginatedQuery(AbstractModel):
     offset: conint(ge=0) = 0
 
 
-class Installation(Enum):
+class Installation(str, Enum):
     akure = "AKURE"
     ife = "IFE"
     island = "ISLAND"
     ikeja = "IKEJA"
     uk = "UK"
-    moro = "MORO"
+    birmingham = "BIRMINGHAM"
     yaba = "YABA"
     global_ = "GLOBAL"
     ibadan = "IBADAN"
 
 
-class AkureTribe(Enum):
-    ...
+class AkureTribe(Enum): ...
 
 
-class IslandTribe(Enum):
+class IslandTribe(str, Enum):
     greater_lekki = "Greater Lekki"
     lekki = "Lekki"
 
 
-class IkejaTribe(Enum):
-    ...
+class IkejaTribe(Enum): ...
 
 
-class UKTribe(Enum):
-    ...
+class UKTribe(Enum): ...
 
 
-class MoroTribe(Enum):
-    ...
+class MoroTribe(Enum): ...
 
 
-class YabaTribe(Enum):
-    ...
+class YabaTribe(Enum): ...
 
 
-class IbadanTribe(Enum):
-    ...
+class IbadanTribe(Enum): ...

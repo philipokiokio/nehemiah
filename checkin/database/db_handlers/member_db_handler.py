@@ -93,13 +93,35 @@ async def get_member(member_uid: UUID):
 async def get_member_via_names(first_name: UUID, last_name: UUID, **kwargs):
     async with async_session() as session:
         stmt = select(MemberDB).where(
-            and_(MemberDB.first_name == first_name, MemberDB.last_name == last_name)
+            and_(
+                MemberDB.first_name.icontains(first_name),
+                MemberDB.last_name.icontains(last_name),
+            )
         )
 
         result = (await session.execute(statement=stmt)).scalar_one_or_none()
 
         if not result:
             LOGGER.error(f"no record was found for: {first_name}, and {last_name}")
+
+            raise NotFound
+        # attendance
+        member_attendance = await get_member_attendance_records(
+            member_uid=result.member_uid
+        )
+        return MemberExtendedProfile(
+            **result.as_dict(), attendance=member_attendance.result_set
+        )
+
+
+async def get_member_via_mail(email: str):
+    async with async_session() as session:
+        stmt = select(MemberDB).filter(MemberDB.email == email)
+
+        result = (await session.execute(statement=stmt)).scalar_one_or_none()
+
+        if not result:
+            LOGGER.error(f"no record was found for: {email}")
 
             raise NotFound
         # attendance

@@ -113,8 +113,7 @@ async def __condinational_attendance_update(
     if len(member_profile.attendance) == 0:
         member_profile.attendance.append(attendance_profile)
 
-    elif attendance_profile.date != member_profile.attendance[-1].date:
-        print(attendance_profile.date)
+    elif attendance_profile.uid != member_profile.attendance[-1].uid:
         member_profile.attendance.append(attendance_profile)
 
     return member_profile
@@ -143,7 +142,15 @@ async def create_attendance_record(
 
     # check if record for today exist before creating a new record
     try:
-        return await get_todays_attendance(member_uid=member_uid, date_=today)
+        todays_attendance = await get_todays_attendance(
+            member_uid=member_uid, date_=today
+        )
+
+        if member_installation != installation:
+
+            raise HTTPException(status_code=400, detail="")
+
+        return todays_attendance
 
     except HTTPException:
         is_guest = True
