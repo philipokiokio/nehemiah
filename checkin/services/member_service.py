@@ -113,7 +113,7 @@ async def __condinational_attendance_update(
     if len(member_profile.attendance) == 0:
         member_profile.attendance.append(attendance_profile)
 
-    elif attendance_profile.uid != member_profile.attendance[-1].uid:
+    elif attendance_profile[-1].uid != member_profile.attendance[-1].uid:
         member_profile.attendance.append(attendance_profile)
 
     return member_profile

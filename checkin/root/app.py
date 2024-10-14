@@ -3,6 +3,8 @@ from fastapi.responses import RedirectResponse
 
 from checkin.routers.admin_route import api_router as admin_router
 from checkin.routers.member_route import api_router as member_router
+from checkin.schemas.commons_schemas import Installation
+from checkin.services.member_service import get_members
 from checkin.routers.attendance_route import api_router as attendance_router
 
 
@@ -24,5 +26,6 @@ def root():
 
 
 @app.get("/health-check", status_code=200)
-def health_check():
+async def health_check():
+    await get_members(installation=Installation.akure)
     return {"keep_alive": True}

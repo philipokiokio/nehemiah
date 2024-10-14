@@ -281,7 +281,7 @@ async def get_todays_attendance(member_uid: UUID, date_: date):
             AttendanceDB.date == date_,
         )
 
-        result = (await session.execute(statement=stmt)).scalar_one_or_none()
+        result = (await session.execute(statement=stmt)).scalars().all()
 
         if result is None:
             LOGGER.error(
@@ -289,7 +289,7 @@ async def get_todays_attendance(member_uid: UUID, date_: date):
             )
             raise NotFound
 
-        return AttendanceProfile(**result.as_dict())
+        return [AttendanceProfile(**x.as_dict()) for x in result]
 
 
 async def get_member_attendance_record(member_uid: UUID, uid: UUID):
