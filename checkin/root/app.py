@@ -27,5 +27,5 @@ def root():
 
 @app.get("/health-check", status_code=200)
 async def health_check():
-    await get_members(installation=Installation.akure)
+    await get_members(installation=Installation.akure.value)
     return {"keep_alive": True}
