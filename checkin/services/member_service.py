@@ -113,7 +113,7 @@ async def __condinational_attendance_update(
     if len(member_profile.attendance) == 0:
         member_profile.attendance.append(attendance_profile)
 
-    elif attendance_profile[-1].uid != member_profile.attendance[-1].uid:
+    elif attendance_profile.uid != member_profile.attendance[-1].uid:
         member_profile.attendance.append(attendance_profile)
 
     return member_profile
@@ -138,6 +138,7 @@ async def member_checkin(member: Member, installation: Installation):
 async def create_attendance_record(
     member_uid: UUID, member_installation: Installation, installation: Installation
 ):
+    no_attendance = True
     today = attendance_utils.today()
 
     # check if record for today exist before creating a new record
@@ -146,13 +147,30 @@ async def create_attendance_record(
             member_uid=member_uid, date_=today
         )
 
-        if member_installation != installation:
+        if member_installation != installation.value:
+            no_attendance = False
 
             raise HTTPException(status_code=400, detail="")
 
-        return todays_attendance
+        no_record = 0
+        for attendance in todays_attendance:
+            if attendance.guest_installation is None:
+                no_record += 1
+        if no_record == 0:
+            raise HTTPException(status_code=400, detail="")
+
+        return todays_attendance[-1]
 
     except HTTPException:
+
+        if member_installation != installation.value and no_attendance is False:
+
+            for attendance in todays_attendance:
+                print(attendance)
+                if attendance.guest_installation == installation:
+                    return attendance
+        print("here")
+
         is_guest = True
         guest_installation = installation
         if member_installation == installation:

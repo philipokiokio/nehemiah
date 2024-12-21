@@ -15,3 +15,9 @@ unit-test:
 
 all-test:
 	pytest --cov=groundible_client tests
+
+start-server:
+	uvicorn chcekin.root.app=app --reload
+
+
+	
